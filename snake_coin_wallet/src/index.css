@@ -1,0 +1,92 @@
+html {
+  height: 100%;
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+}
+
+.ant-table-thead > tr > th {
+  background: transparent;
+}
+
+.ant-table-small
+  > .ant-table-content
+  > .ant-table-header
+  > table
+  > .ant-table-thead
+  > tr
+  > th,
+.ant-table-small
+  > .ant-table-content
+  > .ant-table-body
+  > table
+  > .ant-table-thead
+  > tr
+  > th,
+.ant-table-small
+  > .ant-table-content
+  > .ant-table-scroll
+  > .ant-table-header
+  > table
+  > .ant-table-thead
+  > tr
+  > th,
+.ant-table-small
+  > .ant-table-content
+  > .ant-table-scroll
+  > .ant-table-body
+  > table
+  > .ant-table-thead
+  > tr
+  > th,
+.ant-table-small
+  > .ant-table-content
+  > .ant-table-fixed-left
+  > .ant-table-header
+  > table
+  > .ant-table-thead
+  > tr
+  > th,
+.ant-table-small
+  > .ant-table-content
+  > .ant-table-fixed-right
+  > .ant-table-header
+  > table
+  > .ant-table-thead
+  > tr
+  > th,
+.ant-table-small
+  > .ant-table-content
+  > .ant-table-fixed-left
+  > .ant-table-body-outer
+  > .ant-table-body-inner
+  > table
+  > .ant-table-thead
+  > tr
+  > th,
+.ant-table-small
+  > .ant-table-content
+  > .ant-table-fixed-right
+  > .ant-table-body-outer
+  > .ant-table-body-inner
+  > table
+  > .ant-table-thead
+  > tr
+  > th {
+  background: transparent;
+}
+
+.ant-table-placeholder {
+  background: transparent;
+}
+
+.ant-form-item {
+  margin-bottom: 8px;
+}

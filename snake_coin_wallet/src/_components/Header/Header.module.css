@@ -1,0 +1,30 @@
+.index {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 25px;
+  background-color: rgba(187, 222, 251, 0.3);
+  padding-bottom: 5px;
+  padding-top: 10px;
+  margin-bottom: 18px;
+}
+
+.navLink {
+  display: inline-flex;
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: 18px;
+  color: rgb(35, 102, 17);
+  border-bottom: 3px solid transparent;
+}
+
+.navLink:hover {
+  color: rgb(35, 102, 17);
+}
+
+.navLink::selection {
+}
+
+.navLinkActive {
+  border-bottom: 3px solid rgb(35, 102, 17);
+}
