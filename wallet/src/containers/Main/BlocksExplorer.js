@@ -23,7 +23,7 @@ export default class BlocksExplorer extends Component {
     return (
       <Table
         style={{ backgroundColor: '#fff', ...this.props.style }}
-        title={() => <h3 style={{ textAlign: 'left' }}>Blocks</h3>}
+        title={() => <h3 style={{ textAlign: 'left' }}> Blocks Explorer</h3>}
         size="small"
         rowKey="index"
         dataSource={blocks.slice()}
@@ -38,8 +38,38 @@ export default class BlocksExplorer extends Component {
           hideOnSinglePage: true
         }}
       >
-        <Column title="Index" key="index" dataIndex="index" />
-        <Column title="Hash" key="hash" dataIndex="hash" />
+        <Column
+          title="Index"
+          key="index"
+          dataIndex="index"
+          render={(value, record) => (
+            <div
+              style={{
+                minWidth: '35px'
+              }}
+            >
+              {value}
+            </div>
+          )}
+        />
+        <Column
+          title="Hash"
+          key="hash"
+          dataIndex="hash"
+          render={(value, record) => (
+            <div
+              style={{
+                maxWidth: '240px',
+                fontSize: '12px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {value}
+            </div>
+          )}
+        />
       </Table>
     )
   }

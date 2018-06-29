@@ -1,0 +1,28 @@
+{
+  "node": {
+    "uri": "//localhost:3003"
+  },
+  "peers": [
+    {
+      "uri": "//localhost:3001",
+      "active": true
+    },
+    {
+      "uri": "//localhost:3003",
+      "active": true
+    }
+  ],
+  "blocks": [
+    {
+      "index": 0,
+      "timestamp": 819170640,
+      "data": {
+        "transactions": []
+      },
+      "proof": 9,
+      "acumProofComplexity": 9,
+      "previousHash": null,
+      "hash": "b6dffdd95b2043da83d4a1b7a943d19d564961d9f46d124e0f2e489a554d4dac"
+    }
+  ]
+}

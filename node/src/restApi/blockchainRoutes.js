@@ -3,16 +3,17 @@ import bodyParser from "body-parser"
 import Joi from "joi"
 import fetch from "node-fetch"
 /* app modules */
-import Blockchain from "src/Blockchain/Blockchain"
 
+import Blockchain from "src/Blockchain/Blockchain"
+import { blockchain, node } from "../model"
 const router = express.Router()
 
-const peerNodes = ["//localhost:3000"]
-const blockchain = new Blockchain()
-
 const transactionValidator = Joi.object().keys({
+  id: Joi.string(),
+  hash: Joi.string(),
   from: Joi.string().required(),
   to: Joi.string().required(),
+  toUri: Joi.string(),
   amount: Joi.number()
     .integer()
     .min(0)
@@ -20,7 +21,7 @@ const transactionValidator = Joi.object().keys({
 })
 // .with("username", "birthyear")
 
-function ProofOfWork(nonce) {
+function proofOfWork(nonce) {
   let incrementor = nonce + 1
   while (!(incrementor % 9 === 0 && incrementor > nonce)) {
     incrementor += 1
@@ -28,27 +29,49 @@ function ProofOfWork(nonce) {
   return incrementor
 }
 
-function findNewChains() {
-  const otherChains = []
-
-  for (let nodeUrl of peerNodes) {
-    let blocks = fetch(`${nodeUrl}/blocks`).then(res => res.json())
-
-    otherChains.push(blocks)
-  }
-
-  return otherChains
-}
-
-function consensus() {
-  const otherChains = findNewChains()
-  let longestChain = JSON(blockchain.serialize())
-  for (let blocks of otherChains) {
-    if (longestChain.length < blocks.length) {
-      longestChain = blocks
+async function getDivergeBranch(referer, divergeBlock) {
+  let reversedBranch = []
+  let blockInBranch = divergeBlock
+  let blockInBlockchainByBranchIndex = null
+  for (
+    let indexInBranch = divergeBlock.index - 1;
+    indexInBranch > 0 &&
+    (!blockInBlockchainByBranchIndex ||
+      blockInBlockchainByBranchIndex.hash !== blockInBranch.hash);
+    --indexInBranch
+  ) {
+    // find the point where fork heapens
+    reversedBranch.push(Blockchain.makeBlockFromJson(blockInBranch))
+    try {
+      blockInBranch = await fetch(
+        `http:${referer}/blockchain/${indexInBranch}`
+      ).then(res => {
+        if (res.ok) {
+          return res.json()
+        } else {
+          throw res
+        }
+      })
+    } catch (err) {
+      console.trace()
+      console.error(err)
+      reversedBranch = []
+      break
+    }
+    blockInBlockchainByBranchIndex = blockchain.findBlockByIndex(indexInBranch)
+    let validationResult = Blockchain.validateBlock(
+      reversedBranch[reversedBranch.length - 1],
+      Blockchain.makeBlockFromJson(blockInBranch)
+    )
+    if (!validationResult.status) {
+      console.trace()
+      console.error(validationResult)
+      reversedBranch = []
+      break
     }
   }
-  blockchain.blocks = longestChain
+  return reversedBranch.reverse()
+  //validate new blocks + merge blockchains
 }
 
 router.get("/blocks", bodyParser.json({ limit: "1Mb" }), (req, res) => {
@@ -68,44 +91,113 @@ router.get("/balance/:address", (req, res) => {
   })
 })
 
-router.post(
-  "/transaction",
-  bodyParser.json({ limit: "1Mb" }),
-  (req, res, next) => {
-    const result = Joi.validate(req.body, transactionValidator, {
-      abortEarly: false
+router.get("/transaction/:id", (req, res) => {
+  const foundItem = blockchain.findTransaction(req.params.id)
+  if (!foundItem) {
+    res.status(404).json({
+      message: "transaction not found"
     })
-    if (result.error) {
-      return res.status(400).json({
-        message: result.error
-      })
-    }
-    try {
-      blockchain.addPendingTransaction({ ...req.body })
-    } catch (err) {
-      if (err.type === "treatable") {
-        return res.status(409).json(err)
-      } else {
-        throw err
-      }
-    }
-    res.json(req.body)
   }
-)
+  res.json(foundItem)
+})
 
-router.post("/mine/:toAddress", (req, res) => {
-  const { toAddress } = req.params
+router.post("/transaction", bodyParser.json({ limit: "1Mb" }), (req, res) => {
+  const result = Joi.validate(req.body, transactionValidator, {
+    abortEarly: false
+  })
+  if (result.error) {
+    return res.status(400).json({
+      message: result.error
+    })
+  }
 
+  try {
+    const transaction = blockchain.addPendingTransaction({ ...req.body })
+    node.knownPeers.forEach(({ uri, active }) => {
+      if (uri !== node.uri && active) {
+        fetch(`http:${uri}/blockchain/transaction`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify(transaction)
+        })
+          .then(res => res)
+          .catch(err => {
+            console.error(err)
+          })
+      }
+    })
+  } catch (err) {
+    if (err.status !== undefined) {
+      return res.status(409).json(err)
+    } else {
+      throw err
+    }
+  }
+  res.json(req.body)
+})
+
+router.get("/:index", bodyParser.json({ limit: "1Mb" }), (req, res) => {
+  const foundItem = blockchain.findBlockByIndex(Number(req.params.index))
+
+  if (!foundItem) {
+    res.status(404).json({
+      message: "block not found"
+    })
+  }
+  res.json(foundItem)
+})
+
+router.post("/", bodyParser.json({ limit: "1Mb" }), async (req, res) => {
+  if (req.header.referer) {
+    res.status(400)
+  }
+  const block = blockchain.makeBlockFromJson(req.body)
+
+  if (
+    blockchain.latestBlock.hash !== block.previousHash &&
+    blockchain.latestBlock.acumProofComplexity < block.acumProofComplexity
+    /*   blockchain fork detected*/
+  ) {
+    const branch = await getDivergeBranch(req.headers.referer, block)
+    blockchain.mergeBranch(branch)
+
+    //get blockchain from referer
+    return res.json(req.body)
+  }
+  blockchain.addBlock(block)
+  res.json(req.body)
+})
+
+router.post("/mine", (req, res) => {
   const previousBlock = blockchain.latestBlock
-  const proof = ProofOfWork(previousBlock.proof)
+  const proof = proofOfWork(previousBlock.proof)
 
   blockchain.addPendingTransaction({
     from: "network",
-    to: toAddress || minerAddress,
+    to: node.address,
     amount: 1
   })
 
-  const newBlock = blockchain.generateNextBlock(proof)
+  const newBlock = blockchain.generateBlock(proof)
+
+  node.knownPeers.forEach(({ uri, active }) => {
+    if (uri !== node.uri && active) {
+      fetch(`http:${uri}/blockchain`, {
+        method: "POST",
+        headers: {
+          referer: node.uri,
+          "content-type": "application/json"
+        },
+        body: newBlock.serialize()
+      })
+        .then(res => res)
+        .catch(err => {
+          console.error(err)
+        })
+    }
+  })
   res.set("Content-Type", "application/json; charset=utf-8")
   res.send(newBlock.serialize())
 })

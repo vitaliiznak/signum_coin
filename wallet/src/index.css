@@ -8,6 +8,14 @@ body {
   height: 100%;
 }
 
+.tableNoHead .ant-table-thead{
+  display: none;
+}
+
+.ant-table-title {
+  padding: 0;
+}
+
 #root {
   height: 100%;
 }
@@ -89,4 +97,9 @@ body {
 
 .ant-form-item {
   margin-bottom: 8px;
+}
+
+
+.ant-form-item-label {
+  line-height: 0
 }

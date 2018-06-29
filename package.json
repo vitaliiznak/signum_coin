@@ -14,8 +14,12 @@
     "concurrently": "^3.5.1"
   },
   "scripts": {
-    "node1": "concurrently \" PORT=3001 npm start --prefix node \"  \" PORT=3002 REACT_APP_API_URI=//localhost:3001 npm start --prefix wallet \" ",
-    "node2": "concurrently \"PORT=3003 npm start --prefix node \"  \" PORT=3004 REACT_APP_API_URI=//localhost:3003 npm start --prefix wallet \"",
+    "node1_server": "PORT=3001 npm start --prefix node ",
+    "node1_ui": "PORT=3002 REACT_APP_API_URI=//localhost:3001 npm start --prefix wallet ",
+    "node1": "concurrently \" npm run node1_server \"  \" npm run node1_ui \"",
+    "node2_server": "PORT=3003 npm start --prefix node ",
+    "node2_ui": "PORT=3004 REACT_APP_API_URI=//localhost:3003 npm start --prefix wallet ",
+    "node2": "concurrently \" npm run node2_server \"  \" npm run node2_ui \"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

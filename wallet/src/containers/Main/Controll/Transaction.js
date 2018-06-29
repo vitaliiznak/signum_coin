@@ -1,15 +1,32 @@
 import React, { Component } from 'react'
 import { observer, inject } from 'mobx-react'
-import { Form, InputNumber, Input, Button } from 'antd'
+import { Form, InputNumber, Input, Button, Select, Modal } from 'antd'
+import validator from 'validator'
 
 /* app modules */
-import config from 'config/index'
 const { Item: FormItem } = Form
 
 @inject('mainStore')
-@observer
 @Form.create()
+@observer
 export default class NormalLoginForm extends React.Component {
+  validateAddress = (rule, value, callback) => {
+    if (value.trim().length !== 64 || !validator.isHexadecimal(value.trim())) {
+      return callback(true)
+    }
+    callback()
+  }
+
+  validateAmount = (rule, value, callback) => {
+    const {
+      mainStore: { balance }
+    } = this.props
+    if (balance < value) {
+      return callback(true)
+    }
+    callback()
+  }
+
   handleSubmit = ev => {
     ev.preventDefault()
     this.props.form.validateFields(async (err, values) => {
@@ -17,45 +34,86 @@ export default class NormalLoginForm extends React.Component {
         console.error('Received values of form: ', values)
         return
       }
-      const { mainStore } = this.props
-      fetch(`${config.apiURI}/blockchain/transaction`, {
-        body: JSON.stringify({
-          from: mainStore.address,
-          ...values
-        }), // must match 'Content-Type' header
-        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-        headers: {
-          'content-type': 'application/json'
-        },
-        method: 'POST', // *GET, POST, PUT, DELETE, etc.
-        mode: 'cors', // no-cors, cors, *same-origin
-        redirect: 'follow', // manual, *follow, error,
-        referrer: 'no-referrer' // *client, no-referrer
-      })
+      const { mainStore } = this.props.mainStore
+        .transaction(values)
+        .then(res => {
+          if (res.ok) {
+            Modal.success({
+              title: 'Transaction send',
+              content: (
+                <span>
+                  Transaction is in the pending queue, you must click Mine at
+                  one of the nodes in order to put it intoa blockchain
+                </span>
+              )
+            })
+          }
+          return res
+        })
     })
   }
+
   render() {
-    const { getFieldDecorator } = this.props.form
+    const {
+      form: { getFieldDecorator },
+      mainStore
+    } = this.props
     return (
-      <Form onSubmit={this.handleSubmit} className="login-form">
-        <FormItem>
+      <Form onSubmit={this.handleSubmit}>
+        <FormItem label={'Address to send'}>
           {getFieldDecorator('to', {
-            rules: [{ required: true, message: 'Please input to  address!' }]
-          })(<Input placeholder="to" />)}
+            rules: [
+              { required: true, message: 'Please provide an address!' },
+              {
+                message: 'Is not a valid address!',
+                validator: this.validateAddress
+              }
+            ],
+            initialValue: ''
+          })(
+            <Input
+              placeholder="ex. a6c2d60ce389ca56ed83da809494fbf4bf9b02f4f15a5627c110c59271006932
+          "
+            />
+          )}
         </FormItem>
-        <FormItem>
+        {/* <FormItem label={'Address to send'}>
+          {getFieldDecorator('toUri', {
+            rules: [{ required: true, message: 'Please input an amountt!' }],
+            initialValue: mainStore.nodes.slice().length
+              ? mainStore.nodes.slice()[0]
+              : null
+          })(
+            <Select>
+              {mainStore.nodes.slice().map(address => (
+                <Option key={address} value={address}>
+                  {address}
+                </Option>
+              ))}
+            </Select>
+          )}
+        </FormItem> */}
+        <FormItem label={'Amount to send'}>
           {getFieldDecorator('amount', {
-            rules: [{ required: true, message: 'Please input an ammount!' }],
+            rules: [
+              {
+                required: true,
+                message: 'Please input an amountt!'
+              },
+              {
+                message: 'you do not have enough coins to send',
+                validator: this.validateAmount
+              }
+            ],
             initialValue: 1
-          })(<InputNumber min={1} max={10} />)}
+          })(<InputNumber style={{ width: '100%' }} min={1} />)}
+          {/* <div style={{ fontSize: '11px' }}>
+            (you can not select more than you have
+          </div> */}
         </FormItem>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            type="primary"
-            htmlType="submit"
-            className="login-form-button"
-          >
+          <Button type="primary" htmlType="submit" ghost>
             Send
           </Button>
         </div>
@@ -63,3 +121,10 @@ export default class NormalLoginForm extends React.Component {
     )
   }
 }
+
+// ;<Card style={{ marginBottom: '10px' }}>
+//   <h4>All nodes in a blockchain</h4>
+//   <div style={{ lineBreak: 'auto', overflowWrap: 'break-word' }}>
+//     {mainStore.nodes.map(el => <div>{el}</div>)}
+//   </div>
+// </Card>

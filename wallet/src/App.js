@@ -12,6 +12,7 @@ import { Provider } from 'mobx-react'
 //app modules
 import Header from 'src/_components/Header'
 import Main from 'src/containers/Main'
+import Network from 'src/containers/Main/Network'
 import Controll from 'src/containers/Main/Controll'
 import rootStore from 'src/stores/root'
 import classStyles from './App.module.css'
@@ -29,13 +30,20 @@ class ToLocaleProvider extends Component {
               path={'/blocks'}
               render={props => (
                 <Layout className={classStyles.layout}>
-                  <Header />
-                  <Content className={classStyles.content}>
+                  {/* <Header /> */}
+                  <Content
+                    className={classStyles.content}
+                    style={{ padding: '30px 15px 15px 30px' }}
+                  >
                     <div style={{ display: 'flex' }}>
                       <Main style={{ flex: 1 }} {...props} />
                       <Controll
                         {...props}
                         style={{ width: '28%', minWidth: '300px' }}
+                      />
+                      <Network
+                        {...props}
+                        style={{ width: '25%', minWidth: '280px' }}
                       />
                     </div>
                   </Content>
